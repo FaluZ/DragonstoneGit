@@ -1,0 +1,20 @@
+# Corre el set de pruebas (tests/run-tests.sh) en cada push/PR, para validar
+# automaticamente que los hooks siguen detectando lo que deberian y no
+# rompieron ningun caso existente, antes de que un humano revise el PR.
+#
+# "Require approval for first-time contributors" (Settings > Actions >
+# General) evita que esto corra codigo no confiable de un fork sin que
+# alguien lo apruebe primero.
+name: test-hooks
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Correr tests/run-tests.sh
+        run: bash tests/run-tests.sh

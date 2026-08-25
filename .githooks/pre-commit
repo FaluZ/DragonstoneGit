@@ -1,0 +1,83 @@
+#!/bin/sh
+# Detecta el implante "A8-3424-1 / EtherHiding" antes de cada commit.
+# Historial: encontrado en RESTOBAR, RETAIL, XINERGIAPRO, Restaurante, CONSULTORIAS (x4),
+# AVA, CreceConmigo, Goioneza, golify (Flutter), Pro-Balon-Oro, y en un proyecto externo
+# (LlamasSoft/Frontend_Restaurante_React) — campaña activa contra desarrolladores, no un
+# ataque puntual. Bloquea el commit si detecta cualquiera de las firmas conocidas.
+
+RED='\033[0;31m'
+YEL='\033[0;33m'
+NC='\033[0m'
+
+STAGED=$(git diff --cached --name-only --diff-filter=ACM)
+[ -z "$STAGED" ] && exit 0
+
+BLOCK=0
+
+# --- 1) Marcadores literales conocidos (las 3 variantes de ofuscacion vistas hasta ahora) ---
+LITERAL_PATTERN="global\.i=\"A8-|global\['!'\]=|global\['e'\]='app-[a-z]+-eval'|_\\\$_1e42|windowsHide.{0,80}detached|detached.{0,80}windowsHide|ETH_RPC_URL|eth\.blockscout\.com|ethereum-rpc\.publicnode\.com|eth\.drpc\.org|1rpc\.io/eth|blastapi\.io|SvcHostUpdate|97icr5|main\.inz\.cjs|q4FZkxX"
+
+# --- 2) Config de build conocidos como blanco (deteccion estructural: linea anormalmente larga) ---
+RISKY_CONFIG_RE='(^|/)(vite\.config\.(js|ts|mjs|cjs)|webpack\.(config|mix)\.js|postcss\.config\.(js|cjs|mjs)|tailwind\.config\.(js|cjs|mjs)|babel\.config\.(js|cjs)|\.babelrc.*|next\.config\.(js|mjs)|rollup\.config\.js|jest\.config\.(js|cjs))$'
+MAXLEN=400
+
+for f in $STAGED; do
+    # el propio hook/workflow contiene las firmas como texto de deteccion: no auto-escanearse
+    case "$f" in
+        .githooks/*|.github/workflows/security-scan.yml|*.QUARANTINED) continue ;;
+    esac
+
+    # el archivo puede no existir ya en disco (renombrado/borrado), usar el blob staged
+    content="$(git show ":$f" 2>/dev/null)"
+    [ -z "$content" ] && continue
+
+    # 1) firma literal en cualquier archivo staged
+    if printf '%s' "$content" | grep -qEa "$LITERAL_PATTERN"; then
+        printf "${RED}✖ COMMIT BLOQUEADO — firma conocida del implante en: %s${NC}\n" "$f"
+        BLOCK=1
+        continue
+    fi
+
+    # 2) linea anormalmente larga en un archivo de config de build conocido
+    if printf '%s' "$f" | grep -qE "$RISKY_CONFIG_RE"; then
+        longest=$(printf '%s' "$content" | awk '{ print length }' | sort -rn | head -1)
+        if [ -n "$longest" ] && [ "$longest" -gt "$MAXLEN" ]; then
+            printf "${RED}✖ COMMIT BLOQUEADO — %s tiene una linea de %s bytes (limite %s). Patron identico al de la infeccion previa.${NC}\n" "$f" "$longest" "$MAXLEN"
+            BLOCK=1
+            continue
+        fi
+    fi
+
+    # 3) vector .vscode/tasks.json + settings.json (auto-ejecucion al abrir la carpeta)
+    case "$f" in
+        */.vscode/tasks.json|.vscode/tasks.json)
+            if printf '%s' "$content" | grep -q "folderOpen"; then
+                printf "${RED}✖ COMMIT BLOQUEADO — %s define una tarea con runOn:folderOpen (auto-ejecucion al abrir el proyecto).${NC}\n" "$f"
+                BLOCK=1
+            fi
+            ;;
+        */.vscode/settings.json|.vscode/settings.json)
+            if printf '%s' "$content" | grep -qE '"task\.allowAutomaticTasks"[[:space:]]*:[[:space:]]*true'; then
+                printf "${YEL}⚠ AVISO — %s tiene task.allowAutomaticTasks:true. Revisa que no haya una tarea folderOpen oculta.${NC}\n" "$f"
+            fi
+            ;;
+    esac
+
+    # 4) aviso (no bloquea) si aparece createRequire(import.meta.url) en un config de build
+    #    esta linea es el "andamiaje" que el inyector agrega antes del payload; a veces
+    #    es legitimo, pero en este historial siempre acompano a una infeccion.
+    if printf '%s' "$f" | grep -qE "$RISKY_CONFIG_RE"; then
+        if printf '%s' "$content" | grep -q "createRequire(import.meta.url)"; then
+            printf "${YEL}⚠ AVISO — %s usa createRequire(import.meta.url). No es malicioso por si solo, pero fue el patron de entrada en todas las infecciones anteriores. Revisa manualmente si no lo agregaste tu.${NC}\n" "$f"
+        fi
+    fi
+done
+
+if [ "$BLOCK" -eq 1 ]; then
+    echo ""
+    echo "Limpia el/los archivo(s) senalados antes de volver a intentar el commit."
+    echo "Si estas seguro de que es un falso positivo, usa 'git commit --no-verify' (no recomendado sin revisar primero)."
+    exit 1
+fi
+
+exit 0

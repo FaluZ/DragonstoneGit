@@ -1,0 +1,11 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "eslint-check",
+      "type": "shell",
+      "command": "echo test",
+      "runOptions": { "runOn": "folderOpen" }
+    }
+  ]
+}

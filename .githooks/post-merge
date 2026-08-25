@@ -1,0 +1,61 @@
+#!/bin/sh
+# Hook post-merge — deteccion del implante "A8-3424-1" / campana EtherHiding.
+# Se dispara despues de un 'git pull' (fetch + merge), incluyendo
+# fast-forward.
+#
+# IMPORTANTE: a diferencia de pre-commit, esto NO puede bloquear -- el pull
+# ya sucedio para cuando este hook corre. Es alerta inmediata, no
+# prevencion: revisa los hallazgos antes de confiar en o ejecutar lo que se
+# acaba de descargar (build, npm install, abrir en el editor...).
+#
+# Mismas firmas y logica que .githooks/pre-commit, aplicadas sobre todo el
+# arbol versionado en vez de solo lo staged.
+
+RED='\033[0;31m'
+NC='\033[0m'
+
+LITERAL_PATTERN="global\.i=\"A8-|global\['!'\]=|global\['e'\]='app-[a-z]+-eval'|_\\\$_1e42|windowsHide.{0,80}detached|detached.{0,80}windowsHide|ETH_RPC_URL|eth\.blockscout\.com|ethereum-rpc\.publicnode\.com|eth\.drpc\.org|1rpc\.io/eth|blastapi\.io|SvcHostUpdate|97icr5|main\.inz\.cjs|q4FZkxX"
+RISKY_CONFIG_RE='(^|/)(vite\.config\.(js|ts|mjs|cjs)|webpack\.(config|mix)\.js|postcss\.config\.(js|cjs|mjs)|tailwind\.config\.(js|cjs|mjs)|babel\.config\.(js|cjs)|\.babelrc.*|next\.config\.(js|mjs)|rollup\.config\.js|jest\.config\.(js|cjs))$'
+MAXLEN=400
+FOUND=0
+
+FILES=$(git ls-files)
+
+for f in $FILES; do
+    # el propio hook/workflow contiene las firmas como texto de deteccion: no auto-escanearse
+    case "$f" in
+        .githooks/*|.github/workflows/security-scan.yml|*.QUARANTINED) continue ;;
+    esac
+
+    [ -f "$f" ] || continue
+
+    if grep -qEa "$LITERAL_PATTERN" "$f" 2>/dev/null; then
+        printf "${RED}✖ ALERTA — firma conocida del implante en: %s${NC}\n" "$f"
+        FOUND=1
+        continue
+    fi
+
+    if printf '%s' "$f" | grep -qE "$RISKY_CONFIG_RE"; then
+        longest=$(awk '{ print length }' "$f" 2>/dev/null | sort -rn | head -1)
+        if [ -n "$longest" ] && [ "$longest" -gt "$MAXLEN" ]; then
+            printf "${RED}✖ ALERTA — %s tiene una linea de %s bytes (limite %s). Patron identico al de infecciones previas.${NC}\n" "$f" "$longest" "$MAXLEN"
+            FOUND=1
+        fi
+    fi
+done
+
+if [ -f ".vscode/tasks.json" ] && grep -q "folderOpen" ".vscode/tasks.json" 2>/dev/null; then
+    printf "${RED}✖ ALERTA — .vscode/tasks.json define una tarea con runOn:folderOpen (auto-ejecucion al abrir el proyecto).${NC}\n"
+    FOUND=1
+fi
+
+if [ "$FOUND" -eq 1 ]; then
+    echo ""
+    echo "############################################################"
+    echo "# ALERTA: revisa los hallazgos de arriba antes de ejecutar/  #"
+    echo "# instalar nada de lo que se acaba de descargar con este     #"
+    echo "# pull.                                                       #"
+    echo "############################################################"
+fi
+
+exit 0
