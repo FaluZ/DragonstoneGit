@@ -58,7 +58,7 @@ estas campañas puntuales.
 
 ## Contribuir
 
-¿Encontraste una variante nueva, un falso positivo, o querés agregar detección para otra
+¿Encontraste una variante nueva, un falso positivo, o quieres agregar detección para otra
 campaña? Ver [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Licencia
