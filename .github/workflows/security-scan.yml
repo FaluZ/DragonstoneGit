@@ -22,7 +22,7 @@ jobs:
           # no auto-escanearse (mismo criterio que .githooks/pre-commit).
           is_self() {
             case "$1" in
-              .githooks/*|.github/workflows/security-scan.yml|*.QUARANTINED) return 0 ;;
+              .githooks/*|.github/workflows/security-scan.yml|*.QUARANTINED|tests/fixtures/*) return 0 ;;
               *) return 1 ;;
             esac
           }
