@@ -47,6 +47,14 @@ cambian de ofuscador con el tiempo, así que:
   con `runOn:folderOpen`) son más durables — no dependen de strings exactos.
 - Los **marcadores literales** (nombres de variables ofuscadas, dominios de RPC de Ethereum,
   nombres de archivo específicos) van a caducar en cuanto aparezca una variante nueva.
+- La **identidad de committer** (`post-merge`/`post-checkout`/`security-scan.yml` alertan si
+  algún commit recién llegado tiene como committer real `yugin0120`, típicamente con el
+  *autor* falsificado para aparentar ser un colaborador legítimo del repo) es una señal
+  independiente del contenido — no caduca con cada variante nueva del payload, pero tampoco
+  es universal: es específica de este mecanismo de injerto, no de la campaña en general. No
+  se usa el mismatch de huso horario entre autor y committer como señal por sí solo, porque
+  en la práctica aparece también en commits legítimos (ej. equipos que empujan cambios desde
+  un servidor compartido) y generaría demasiados falsos positivos.
 
 No es un antivirus ni un reemplazo de buenas prácticas (revisar dependencias, no correr
 `npm install` sin mirar qué se instala, etc.) — es una capa adicional específica contra esta

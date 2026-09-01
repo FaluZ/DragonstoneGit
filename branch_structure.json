@@ -1,0 +1,24 @@
+{
+  "default_branch": "main",
+  "branches": [
+    "FaluZ-patch-1",
+    "add-scan-all-tool",
+    "main",
+    "origin",
+    "sync-yugin0120-detection"
+  ],
+  "parent": {
+    "FaluZ-patch-1": "main",
+    "add-scan-all-tool": "main",
+    "main": null,
+    "origin": "main",
+    "sync-yugin0120-detection": "main"
+  },
+  "order": [
+    "main",
+    "FaluZ-patch-1",
+    "add-scan-all-tool",
+    "origin",
+    "sync-yugin0120-detection"
+  ]
+}

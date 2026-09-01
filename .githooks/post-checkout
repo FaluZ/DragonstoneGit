@@ -13,7 +13,7 @@
 RED='\033[0;31m'
 NC='\033[0m'
 
-LITERAL_PATTERN="global\.i=\"A8-|global\['!'\]=|global\['e'\]='app-[a-z]+-eval'|_\\\$_1e42|windowsHide.{0,80}detached|detached.{0,80}windowsHide|ETH_RPC_URL|eth\.blockscout\.com|ethereum-rpc\.publicnode\.com|eth\.drpc\.org|1rpc\.io/eth|blastapi\.io|SvcHostUpdate|97icr5|main\.inz\.cjs|q4FZkxX"
+LITERAL_PATTERN="global.i[ 	]*=[ 	]*['\"]A8-|global\['!'\]=|global\['e'\]='app-[a-z]+-eval'|_\\\$_1e42|windowsHide.{0,80}detached|detached.{0,80}windowsHide|ETH_RPC_URL|eth\.blockscout\.com|ethereum-rpc\.publicnode\.com|eth\.drpc\.org|1rpc\.io/eth|blastapi\.io|SvcHostUpdate|97icr5|main\.inz\.cjs|q4FZkxX"
 RISKY_CONFIG_RE='(^|/)(vite\.config\.(js|ts|mjs|cjs)|webpack\.(config|mix)\.js|postcss\.config\.(js|cjs|mjs)|tailwind\.config\.(js|cjs|mjs)|babel\.config\.(js|cjs)|\.babelrc.*|next\.config\.(js|mjs)|rollup\.config\.js|jest\.config\.(js|cjs))$'
 MAXLEN=400
 FOUND=0
@@ -23,7 +23,7 @@ FILES=$(git ls-files)
 for f in $FILES; do
     # el propio hook/workflow contiene las firmas como texto de deteccion: no auto-escanearse
     case "$f" in
-        .githooks/*|.github/workflows/security-scan.yml|*.QUARANTINED|tests/fixtures/*) continue ;;
+        .githooks/*|.github/workflows/security-*.yml|*.QUARANTINED|tests/fixtures/*) continue ;;
     esac
 
     [ -f "$f" ] || continue
@@ -45,6 +45,24 @@ done
 
 if [ -f ".vscode/tasks.json" ] && grep -q "folderOpen" ".vscode/tasks.json" 2>/dev/null; then
     printf "${RED}✖ ALERTA — .vscode/tasks.json define una tarea con runOn:folderOpen (auto-ejecucion al abrir el proyecto).${NC}\n"
+    FOUND=1
+fi
+
+# --- identidad de committer conocida del mecanismo de injerto observado en
+#     incidentes reales (no depende de contenido: el autor de estos commits
+#     suele venir falsificado con la identidad de un colaborador legitimo,
+#     pero el committer real registrado ha sido siempre "yugin0120").
+#     En un clone nuevo ($1 es todo-ceros) se revisa el historial completo. ---
+BAD_COMMITTER="yugin0120"
+ZERO="0000000000000000000000000000000000000000"
+if [ -n "$1" ] && [ "$1" != "$ZERO" ] && git rev-parse --verify -q "$1" >/dev/null 2>&1; then
+    COMMIT_RANGE="$1..$2"
+else
+    COMMIT_RANGE="$2"
+fi
+if git log "$COMMIT_RANGE" --format='%cn' 2>/dev/null | grep -qx "$BAD_COMMITTER"; then
+    printf "${RED}✖ ALERTA — commit(s) con identidad de committer '%s', asociada al mecanismo de reinfeccion conocido:${NC}\n" "$BAD_COMMITTER"
+    git log "$COMMIT_RANGE" --format='  %h  autor: %an <%ae>  committer: %cn <%ce>  %s' 2>/dev/null | grep -F "$BAD_COMMITTER"
     FOUND=1
 fi
 
