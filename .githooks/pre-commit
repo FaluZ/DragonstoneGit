@@ -15,7 +15,7 @@ STAGED=$(git diff --cached --name-only --diff-filter=ACM)
 BLOCK=0
 
 # --- 1) Marcadores literales conocidos (las 3 variantes de ofuscacion vistas hasta ahora) ---
-LITERAL_PATTERN="global\.i=\"A8-|global\['!'\]=|global\['e'\]='app-[a-z]+-eval'|_\\\$_1e42|windowsHide.{0,80}detached|detached.{0,80}windowsHide|ETH_RPC_URL|eth\.blockscout\.com|ethereum-rpc\.publicnode\.com|eth\.drpc\.org|1rpc\.io/eth|blastapi\.io|SvcHostUpdate|97icr5|main\.inz\.cjs|q4FZkxX"
+LITERAL_PATTERN="global.i[ 	]*=[ 	]*['\"]A8-|global\['!'\]=|global\['e'\]='app-[a-z]+-eval'|_\\\$_1e42|windowsHide.{0,80}detached|detached.{0,80}windowsHide|ETH_RPC_URL|eth\.blockscout\.com|ethereum-rpc\.publicnode\.com|eth\.drpc\.org|1rpc\.io/eth|blastapi\.io|SvcHostUpdate|97icr5|main\.inz\.cjs|q4FZkxX"
 
 # --- 2) Config de build conocidos como blanco (deteccion estructural: linea anormalmente larga) ---
 RISKY_CONFIG_RE='(^|/)(vite\.config\.(js|ts|mjs|cjs)|webpack\.(config|mix)\.js|postcss\.config\.(js|cjs|mjs)|tailwind\.config\.(js|cjs|mjs)|babel\.config\.(js|cjs)|\.babelrc.*|next\.config\.(js|mjs)|rollup\.config\.js|jest\.config\.(js|cjs))$'
@@ -24,7 +24,7 @@ MAXLEN=400
 for f in $STAGED; do
     # el propio hook/workflow contiene las firmas como texto de deteccion: no auto-escanearse
     case "$f" in
-        .githooks/*|.github/workflows/security-scan.yml|*.QUARANTINED|tests/fixtures/*) continue ;;
+        .githooks/*|.github/workflows/security-*.yml|*.QUARANTINED|tests/fixtures/*) continue ;;
     esac
 
     # el archivo puede no existir ya en disco (renombrado/borrado), usar el blob staged
