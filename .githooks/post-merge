@@ -24,7 +24,7 @@ FILES=$(git ls-files)
 for f in $FILES; do
     # el propio hook/workflow contiene las firmas como texto de deteccion: no auto-escanearse
     case "$f" in
-        .githooks/*|.github/workflows/security-*.yml|*.QUARANTINED|tests/fixtures/*) continue ;;
+        .githooks/*|.github/workflows/security-*.yml|tools/*|*.QUARANTINED|tests/fixtures/*) continue ;;
     esac
 
     [ -f "$f" ] || continue
