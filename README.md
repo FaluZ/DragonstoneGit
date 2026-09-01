@@ -41,6 +41,22 @@ hook local activado, o lo salte con `--no-verify`. Por defecto solo marca el che
 (no bloquea el push); para que bloquee de verdad hay que combinarlo con "require pull
 request" + "required status check" en la protección de rama de tu repo.
 
+## Auditar varios repos locales de una sola vez
+
+Los hooks solo miran lo que acaba de pasar (un commit, un pull, un checkout). Para revisar
+de una pasada el estado completo (árbol actual + todo el historial alcanzable) de varios
+repos que ya tenés clonados, usá `tools/scan-all.sh`:
+
+```bash
+./tools/scan-all.sh /ruta/repo1 /ruta/repo2 /ruta/repo3
+# o, para autodetectar cada repo bajo una carpeta:
+./tools/scan-all.sh --root /ruta/con/varios/proyectos
+```
+
+No hace falta que estos repos tengan `.githooks/` instalado — el script trae su propia copia
+de las reglas y corre desde afuera. Termina con código de salida `1` si algún repo tuvo
+hallazgos (útil para meterlo en un script de chequeo periódico propio).
+
 ## Límites — leé esto antes de confiar ciegamente
 
 Este repo detecta **campañas conocidas**, no malware en general:
