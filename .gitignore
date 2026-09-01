@@ -1,2 +1,4 @@
 .DS_Store
 Thumbs.db
+config.bat
+node_modules
